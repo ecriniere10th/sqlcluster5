@@ -6,11 +6,11 @@
 
 IF NOT EXISTS (SELECT * FROM master.sys.credentials WHERE credential_identity = 'AzureBackup')
        BEGIN
-              CREATE CREDENTIAL AzureBackup WITH IDENTITY = 'bbscrips', SECRET = 'rNfO30hmE9gjm+b22oa3t2sHVpESHq5g12RO8Nc5SUr3ibUV6DguJxaXFVtvX51zN+xZvdYNnkX8/OZE/m1DCw=='
+              CREATE CREDENTIAL AzureBackup WITH IDENTITY = '<name of storage account>', SECRET = '<storage account key>'
        END
 
 
 -- Run Line 16 to execute the backup process
 -- Backup Database to a private Azure storage account with the name backup.bak
    
-BACKUP DATABASE master TO URL='https://bbscrips.blob.core.windows.net/backupdb/backup.bak' WITH CREDENTIAL='AzureBackup', COMPRESSION 
+BACKUP DATABASE master TO URL='<Storage account URL>' WITH CREDENTIAL='AzureBackup', COMPRESSION 
