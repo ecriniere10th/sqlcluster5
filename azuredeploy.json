@@ -1,0 +1,206 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+
+    "namePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for each new resource created. 8-char max, lowercase alphanumeric"
+      },
+      "defaultValue": "az"
+    },
+
+    "storageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Premium Storage Accounts will be used for the SQL AO Environment"
+      },
+      "defaultValue": "Premium_LRS"
+    },
+
+    "sqlVMSize": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_DS3"
+      ],
+      "metadata": {
+        "description": "Size of the SQL VMs to be created"
+      },
+      "defaultValue": "Standard_DS3"
+    },
+
+    "sqlWitnessVMSize": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_DS1"
+      ],
+      "metadata": {
+        "description": "Size of the Witness VM to be created"
+      },
+      "defaultValue": "Standard_DS1"
+    },
+
+    "windowsImageOffer": {
+      "type": "string",
+      "allowedValues": [
+        "SQL2012SP3-WS2012R2",
+        "SQL2012SP3-WS2012R2-BYOL"
+      ],
+      "defaultValue": "SQL2012SP3-WS2012R2-BYOL"
+    },
+
+    "windowsImageVersion": {
+      "type": "string",
+      "allowedValues": [
+        "latest",
+        "11.0.65235"
+      ],
+      "defaultValue": "11.0.65235"
+    },
+    "existingDomainName": {
+      "type": "string",
+      "metadata": {
+        "description": "DNS domain name for existing Active Directory domain"
+      },
+      "defaultValue": "bbc.local"
+    },
+
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of a domain administrator of the existing Active Directory Domain"
+      }
+    },
+
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password for the domain administrator account of the existing Active Directory Domain"
+      }
+    },
+
+    "sqlServerServiceAccountUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "The SQL Server Service account name"
+      },
+      "defaultValue": "azsqldbeng"
+    },
+
+    "sqlServerServiceAccountPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The SQL Server Service account password"
+      }
+    },
+
+    "existingVirtualNetworkId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the existing VNET. You can find the Resource ID for the VNET on the Properties blade of the VNET."
+      }
+    },
+
+    "existingSqlSubnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing subnet in the existing VNET to which the SQL & Witness VMs should be deployed"
+      },
+      "defaultValue": "SQL"
+    },
+
+    "existingAdPDCVMName": {
+      "type": "string",
+      "maxLength": 15,
+      "metadata": {
+        "description": "Computer name of the existing Primary AD domain controller & DNS server"
+      },
+      "defaultValue": "azdc01"
+    },
+
+    "sqlLBIPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "IP address of ILB for the SQL Server AlwaysOn listener to be created"
+      },
+      "defaultValue": "10.7.4.10"
+    },
+
+    "assetLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Location of resources that the script is dependent on such as linked templates and DSC modules"
+      },
+      "defaultValue": "https://bbtedeploymentscript.blob.core.windows.net/sqlcluster"
+    },
+    "sasToken": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "SAS token for the storage account in which the DSC script for the servers resides"
+      }
+    }
+  },
+
+  "variables": {
+
+    "apiVersion": "2015-01-01",
+    "apiVersionNetworks": "2015-06-15",
+    "apiVersionVirtualMachines": "2015-06-15",
+    "apiVersionVMExtensions": "2015-06-15",
+    "apiVersionStorage": "2015-06-15",
+
+    "sqlSubnetRef": "[concat(parameters('existingVirtualNetworkId'),'/subnets/',parameters('existingSqlSubnetName'))]",
+    
+    "deploySqlClusterTemplateURL": "[concat(parameters('assetLocation'),'/deploy-sql-cluster.json')]",
+    "deploySqlCluster": "deploySqlCluster",
+    "deploySqlClusterId": "[concat('Microsoft.Resources/deployments/', variables('deploySqlCluster'))]"
+
+  },
+
+  "resources": [
+
+    {
+      "name": "[variables('deploySqlCluster')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('apiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('deploySqlClusterTemplateURL'), parameters('sasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "namePrefix": { "value": "[parameters('namePrefix')]" },
+          "domainName": { "value": "[parameters('existingDomainName')]" },
+          "dnsServerName": { "value": "[parameters('existingAdPDCVMName')]" },
+          "adminUsername": { "value": "[parameters('adminUsername')]" },
+          "adminPassword": { "value": "[parameters('adminPassword')]" },
+          "sqlServerServiceAccountUserName": { "value": "[parameters('sqlServerServiceAccountUserName')]" },
+          "sqlServerServiceAccountPassword": { "value": "[parameters('sqlServerServiceAccountPassword')]" },
+          "storageAccountType": { "value": "[parameters('storageAccountType')]" },
+          "nicSubnetUri": { "value": "[variables('sqlSubnetRef')]" },
+          "lbSubnetUri": { "value": "[variables('sqlSubnetRef')]" },
+          "sqlLBIPAddress": { "value": "[parameters('sqlLBIPAddress')]" },
+          "sqlVMSize": { "value": "[parameters('sqlVMSize')]" },
+          "sqlWitnessVMSize": { "value": "[parameters('sqlWitnessVMSize')]" },
+          "windowsImageOffer": { "value": "[parameters('windowsImageOffer')]" },
+          "windowsImageVersion": { "value": "[parameters('windowsImageVersion')]" },
+          "sasToken": { "value": "[parameters('sasToken')]" },
+          "assetLocation": { "value": "[parameters('assetLocation')]" }
+        }
+      }
+    }
+
+  ],
+
+  "outputs": {
+  }
+}
