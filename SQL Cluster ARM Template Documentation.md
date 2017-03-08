@@ -6,7 +6,7 @@ This document will provide guidance on deploying a SQL AlwaysOn Highly Available
 environment. The image below is a reference as to the resources that will be
 deployed, and configured. Some values in the image may be incorrect.
 
-(https://github.com/ecriniere10th/sqlcluster5/blob/master/CRSqlTopology.png)
+![img](https://github.com/ecriniere10th/sqlcluster5/blob/master/CRSqlTopology.png)
 
 Installation
 ============
